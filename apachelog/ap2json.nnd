@@ -5,6 +5,7 @@
 ;; Using this gem
 ;;   http://rubydoc.info/gems/apachelogregex/0.1.0/frames
 (require "apachelogregex")
+(require "date")
 (use util.list)
 (use rfc.json)
 
@@ -17,7 +18,7 @@
     ("%t"                  timestamp     #f)
     ("%r"                  request       #t)
     ("%>s"                 result_code   #f)
-    ("%b"                  sendsize      #f)
+    ("%b"                  tfrsize       #f)
     ("%{Referer}i"         referer       #t)
     ("%{User-Agent}i"      user_agent    #t)))
 
@@ -51,17 +52,49 @@
        (hash-table->alist v)))))
 
 
+(define (to-mongo-data arg-alist)
+  ;;    irb
+  ;; irb(main):024:0> dt = DateTime.parse "[09/Oct/2011 06:45:00 +0900]"
+  ;; => #<DateTime: 2011-10-09T06:45:00+09:00 ((2455843j,78300s,0n),+32400s,2299161j)>
+  ;; irb(main):025:0> dt.to_s
+  ;; => "2011-10-09T06:45:00+09:00"
+  ;; irb(main):026:0> 
+  
+  ;;    mongodb shell
+  ;; > ISODate( "2011-10-09T06:45:00+09:00" );
+  ;; ISODate("2011-10-08T21:45:00Z")
+
+  (let* ([_ (assq-ref 'timestamp arg-alist)] ;; like "[09/Oct/2011:06:45:00 +0900]"
+         [_ (_.sub #/[:]/ " ")]
+         [dt   (DateTime.parse #?=_)])
+    (map
+     (lambda (x)
+       (case (car x)
+         ((timestamp)
+          (cons (car x)
+                (alist->hash-table
+                 `(
+                   ("$date" . ,(* (dt.to_time.to_i) 1000) ;; milisecond
+                    )))))
+         ((tfrsize)
+          (cons (car x) (. (cdr x) to_i)))
+         (else
+          x)))
+     arg-alist)))
+
+
+;;(to-mongo-data '(
+;;                   (timestamp . "[09/Oct/2011 06:45:00 +0900]")
+;;                   (a . b)
+;;                   (tfrsize . "128")))
+ 
+
 (define (main argv)
   (for-each
    (lambda (line)
      (print
       (construct-json-string
-       (ap2-parse-combined line))))
+       (to-mongo-data
+        #?=(ap2-parse-combined line)))))
    STDIN))
-
-
-  
-
-      
-       
 
