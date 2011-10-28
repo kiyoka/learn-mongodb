@@ -6,6 +6,7 @@
 ;;   http://rubydoc.info/gems/apachelogregex/0.1.0/frames
 (require "apachelogregex")
 (use util.list)
+(use rfc.json)
 
 (define ap2-format-list
   '(
@@ -30,7 +31,7 @@
               (first x)))
         ap2-format-list)
        " ")
-    (ApacheLogRegex.new #?=combind)))
+    (ApacheLogRegex.new combind)))
 
 
 (define (ap2-parse-combined line)
@@ -46,11 +47,20 @@
                            (lambda (entry)
                              (cons (first entry) (second entry)))
                            ap2-format-list))
-            #?=val)))
+            val)))
        (hash-table->alist v)))))
 
-;; (print (ap2-parse-combined  "87.18.183.252 - - [13/Aug/2008:00:50:49 -0700] \"GET /blog/index.xml HTTP/1.1\" 302 527 \"-\" \"Feedreader 3.13 (Powered by Newsbrain)\""))
 
+(define (main argv)
+  (for-each
+   (lambda (line)
+     (print
+      (construct-json-string
+       (ap2-parse-combined line))))
+   STDIN))
+
+
+  
 
       
        
