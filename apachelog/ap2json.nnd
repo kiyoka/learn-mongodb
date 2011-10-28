@@ -1,0 +1,57 @@
+#!/bin/sh
+:; #-*- mode: nendo; syntax: scheme -*-;;
+:; exec /usr/local/bin/nendo $0 $*
+
+;; Using this gem
+;;   http://rubydoc.info/gems/apachelogregex/0.1.0/frames
+(require "apachelogregex")
+(use util.list)
+
+(define ap2-format-list
+  '(
+    ;; format              symbol        need \"...\"
+    ("%h"                  hostname      #f)
+    ("%l"                  client_id     #f)
+    ("%u"                  username      #f)
+    ("%t"                  timestamp     #f)
+    ("%r"                  request       #t)
+    ("%>s"                 result_code   #f)
+    ("%b"                  sendsize      #f)
+    ("%{Referer}i"         referer       #t)
+    ("%{User-Agent}i"      user_agent    #t)))
+
+(define ap2-parser
+  (let1 combind
+      (string-join
+       (map
+        (lambda (x)
+          (if (third x)
+              (string-append "\\\"" (first x) "\\\"")
+              (first x)))
+        ap2-format-list)
+       " ")
+    (ApacheLogRegex.new #?=combind)))
+
+
+(define (ap2-parse-combined line)
+  (guard (e ((e.is_a? ApacheLogRegex::ParseError)
+             (errorf "Error parsing log file: %s" e.message)))
+    (let1 v (ap2-parser.parse! line)
+      (map
+       (lambda (x)
+         (let ([key (car x)]
+               [val (cdr x)])
+           (cons
+            (assq-ref key (map
+                           (lambda (entry)
+                             (cons (first entry) (second entry)))
+                           ap2-format-list))
+            #?=val)))
+       (hash-table->alist v)))))
+
+;; (print (ap2-parse-combined  "87.18.183.252 - - [13/Aug/2008:00:50:49 -0700] \"GET /blog/index.xml HTTP/1.1\" 302 527 \"-\" \"Feedreader 3.13 (Powered by Newsbrain)\""))
+
+
+      
+       
+
