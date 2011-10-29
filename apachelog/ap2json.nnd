@@ -64,9 +64,9 @@
   ;; > ISODate( "2011-10-09T06:45:00+09:00" );
   ;; ISODate("2011-10-08T21:45:00Z")
 
-  (let* ([_ (assq-ref 'timestamp arg-alist)] ;; like "[09/Oct/2011:06:45:00 +0900]"
-         [_ (_.sub #/[:]/ " ")]
-         [dt   (DateTime.parse #?=_)])
+  (let* ([_    (assq-ref 'timestamp arg-alist)] ;; like "[09/Oct/2011:06:45:00 +0900]"
+         [_    (_.sub #/[:]/ " ")]
+         [dt   (DateTime.parse _)])
     (map
      (lambda (x)
        (case (car x)
@@ -90,11 +90,14 @@
  
 
 (define (main argv)
-  (for-each
-   (lambda (line)
-     (print
-      (construct-json-string
-       (to-mongo-data
-        #?=(ap2-parse-combined line)))))
-   STDIN))
+  (unwind-protect
+      (for-each
+       (lambda (line)
+         (print
+          (construct-json-string
+           (to-mongo-data
+            (ap2-parse-combined line)))))
+       STDIN)
+    #f))
+
 
