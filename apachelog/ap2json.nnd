@@ -22,6 +22,15 @@
     ("%{Referer}i"         referer       #t)
     ("%{User-Agent}i"      user_agent    #t)))
 
+(define ap2-format-symbol-hash
+  (alist->hash-table
+   (map
+    (lambda (x)
+      (cons
+       (first x)
+       (second x)))
+    ap2-format-list)))
+
 (define ap2-parser
   (let1 combind
       (string-join
@@ -34,25 +43,26 @@
        " ")
     (ApacheLogRegex.new combind)))
 
-
 (define (ap2-parse-combined line)
   (guard (e ((e.is_a? ApacheLogRegex::ParseError)
-             (errorf "Error parsing log file: %s" e.message)))
-    (let1 v (ap2-parser.parse! line)
-      (map
-       (lambda (x)
-         (let ([key (car x)]
-               [val (cdr x)])
-           (cons
-            (assq-ref key (map
-                           (lambda (entry)
-                             (cons (first entry) (second entry)))
-                           ap2-format-list))
-            val)))
-       (hash-table->alist v)))))
+             (errorf "Error parsing log file: %s" e.message))
+            (else
+             (raise e)))
+    (let ([h1 (ap2-parser.parse! line)]
+          [h2 (make-hash-table eq?)])
+      (for-each
+       (lambda (key)
+         (hash-table-put!
+          h2
+          (hash-table-get ap2-format-symbol-hash key) ;; convert key "%h" style into 'hostname style.
+          (hash-table-get h1 key)))
+       (h1.keys))
+      h2)))
 
+;;(ap2-parse-combined "87.18.183.252 - - [13/Aug/2008:00:50:49 -0700] \"GET /blog/index.xml HTTP/1.1\" 302 527 \"-\" \"Feedreader 3.13 (Powered by Newsbrain)\"")
+                    
 
-(define (to-mongo-data arg-alist)
+(define (to-mongo-data h)
   ;;    irb
   ;; irb(main):024:0> dt = DateTime.parse "[09/Oct/2011 06:45:00 +0900]"
   ;; => #<DateTime: 2011-10-09T06:45:00+09:00 ((2455843j,78300s,0n),+32400s,2299161j)>
@@ -63,31 +73,30 @@
   ;;    mongodb shell
   ;; > ISODate( "2011-10-09T06:45:00+09:00" );
   ;; ISODate("2011-10-08T21:45:00Z")
-
-  (let* ([_    (assq-ref 'timestamp arg-alist)] ;; like "[09/Oct/2011:06:45:00 +0900]"
+  
+  (let* ([_    (hash-table-get h 'timestamp)]
          [_    (_.sub #/[:]/ " ")]
          [dt   (DateTime.parse _)])
-    (map
-     (lambda (x)
-       (case (car x)
-         ((timestamp)
-          (cons (car x)
-                (alist->hash-table
-                 `(
-                   ("$date" . ,(* (dt.to_time.to_i) 1000) ;; milisecond
-                    )))))
-         ((tfrsize)
-          (cons (car x) (. (cdr x) to_i)))
-         (else
-          x)))
-     arg-alist)))
+    (hash-table-put!
+     h
+     'timestamp
+     (alist->hash-table
+      `(
+        ("$date" . ,(* (dt.to_time.to_i) 1000) ;; milisecond
+         ))))
+    (hash-table-put!
+     h
+     'tfrsize
+     (to-i (hash-table-get h 'tfrsize))))
+  h)
 
+;;(to-mongo-data
+;; (alist->hash-table
+;;  '(
+;;    (timestamp . "[09/Oct/2011:06:45:00 +0900]")
+;;    (a . b)
+;;    (tfrsize . "128"))))
 
-;;(to-mongo-data '(
-;;                   (timestamp . "[09/Oct/2011 06:45:00 +0900]")
-;;                   (a . b)
-;;                   (tfrsize . "128")))
- 
 
 (define (main argv)
   (unwind-protect
@@ -99,5 +108,3 @@
             (ap2-parse-combined line)))))
        STDIN)
     #f))
-
-
