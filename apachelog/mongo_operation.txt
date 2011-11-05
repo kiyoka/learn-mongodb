@@ -84,4 +84,11 @@ for ( i = 0 ; i < g.length ; i++ ) {
     print( d.getFullYear() + "/" + d.getMonth() + "/" + d.getDate() + "    " + g[i].count )
 }
 
+uniqUrl = db.apachelog.distinct( "request" );
 
+
+> var cursor = db.apachelog.find().limit(2);
+> cursor.forEach(function(x) {
+   lst = split( x.request )
+   print( lst );
+ });
