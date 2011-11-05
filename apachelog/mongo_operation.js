@@ -84,7 +84,7 @@ for ( i = 0 ; i < g.length ; i++ ) {
     print( d.getFullYear() + "/" + d.getMonth() + "/" + d.getDate() + "    " + g[i].count )
 }
 
-uniqUrl = db.apachelog.distinct( "request" );
+
 
 
 # heavy query
@@ -96,3 +96,10 @@ uniqUrl = db.apachelog.distinct( "request" );
 					    { "method" : lst[0],
 					      "url"    : lst[1] }}} )
  });
+
+> db.apachelog.ensureIndex( { url : 1 } )
+
+> db.apachelog.distinct( "req.url" );
+
+
+

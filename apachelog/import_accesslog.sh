@@ -1,9 +1,10 @@
 #!/bin/bash
 
-P=./log/apache2
+NAME=$1
+P=./log/${NAME}
 
-for i in ${P}/access.log.*.json ;
+for i in ${P}/access.log*.json ;
 do
-  echo "mongoimport  -d sumibi -c apachelog ${i}"
-  time mongoimport  -d sumibi -c apachelog ${i}
+  echo "mongoimport  -d sumibi -c ${NAME} ${i}"
+  time mongoimport  -d sumibi -c ${NAME} ${i}
 done

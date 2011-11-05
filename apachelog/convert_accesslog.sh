@@ -1,8 +1,9 @@
 #!/bin/bash
 
-P=./log/apache2
+NAME=$1
+P=./log/${NAME}
 
-for i in ${P}/access.log.*.gz ;
+for i in ${P}/access.log*.gz ;
 do
   target=`basename ${i} .gz`
   echo "zcat ${i} | nendo ./ap2json.nnd > ${P}/${target}.json"
