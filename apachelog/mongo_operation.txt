@@ -54,7 +54,7 @@ Sun Oct 09 2011 00:00:00 GMT+0900 (JST)
 
 
 
-#  this qeury is very heavy...
+#  heavy query
 > var cursor = db.apachelog.find();
 > cursor.forEach(function(x) {
    d1 = x.timestamp
@@ -87,8 +87,12 @@ for ( i = 0 ; i < g.length ; i++ ) {
 uniqUrl = db.apachelog.distinct( "request" );
 
 
-> var cursor = db.apachelog.find().limit(2);
+# heavy query
+> var cursor = db.apachelog.find()
 > cursor.forEach(function(x) {
-   lst = split( x.request )
-   print( lst );
+   lst = x.request.split(/ /)
+   db.apachelog.update( { _id: x._id }, { "$set" : 
+					  { "req" : 
+					    { "method" : lst[0],
+					      "url"    : lst[1] }}} )
  });
