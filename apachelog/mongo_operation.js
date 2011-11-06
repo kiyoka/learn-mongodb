@@ -101,5 +101,21 @@ for ( i = 0 ; i < g.length ; i++ ) {
 
 > db.apachelog.distinct( "req.url" );
 
+g = db.apachelog.group(
+    {key: { req : { url:true }},
+     cond: {},
+     reduce: function(obj,prev) { prev.count += 1; },
+     initial: { count: 0 }
+    });
+
+
+for ( i = 0 ; i < g.length ; i++ ) {
+    db.apachelog.top.insert( { url: g[i].req.url, count: g[i].count } );
+}
+
+# Top access url as TSV format.
+db.apachelog.top.find().sort( { count: -1 } ).limit( 50 ).forEach( function( x ) {
+    print( x.count + "\t" + x.url );
+} )
 
 
