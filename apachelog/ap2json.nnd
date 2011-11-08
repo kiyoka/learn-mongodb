@@ -87,7 +87,11 @@
     (hash-table-put!
      h
      'tfrsize
-     (to-i (hash-table-get h 'tfrsize))))
+     (to-i (hash-table-get h 'tfrsize)))
+
+    (let1 arr (. (hash-table-get h 'request) split #/ /)
+      (let1 url (vector-ref arr 1)
+        (hash-table-put! h 'url url))))
   h)
 
 ;;(to-mongo-data
@@ -99,12 +103,10 @@
 
 
 (define (main argv)
-  (unwind-protect
-      (for-each
-       (lambda (line)
-         (print
-          (construct-json-string
-           (to-mongo-data
-            (ap2-parse-combined line)))))
-       STDIN)
-    #f))
+  (for-each
+   (lambda (line)
+     (print
+      (construct-json-string
+       (to-mongo-data
+        (ap2-parse-combined line)))))
+   STDIN))

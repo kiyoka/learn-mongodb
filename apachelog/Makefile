@@ -2,17 +2,17 @@
 all:
 	echo nothing to do.
 
-convertA:
-	bash convert_accesslog.sh apache2
+convert1:
+	bash convert_accesslog.sh sumibiorg
 
-importA:
-	bash import_accesslog.sh apache2
+import1:
+	bash import_accesslog.sh  sumibiorg
 
 
-convertB:
+convert2:
 	bash convert_accesslog.sh oldtype
 
-importB:
+import2:
 	bash import_accesslog.sh oldtype
 
 
