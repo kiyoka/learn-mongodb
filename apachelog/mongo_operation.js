@@ -70,47 +70,18 @@ for ( i = 0 ; i < a.length ; i++ ) {
 }
 
 
-# group by timestampDaily
-g = db.sumibiorg.group(
-    {key: { timestampDaily:true },
-     cond: {},
-     reduce: function(obj,prev) { prev.count += 1; },
-     initial: { count: 0 }
-    })
-
-for ( i = 0 ; i < g.length ; i++ ) {
-    d = g[i].timestampDaily
-    print( d.getFullYear() + "/" + (d.getMonth()+1) + "/" + d.getDate() + "\t" + g[i].count )
-}
-
-
-# group by timestampDaily  and filtering sumibi.cgi
-g = db.sumibiorg.group(
-    {key: { timestampDaily:true },
-     cond: { url : "/cgi-bin/sumibi/testing/sumibi.cgi" },
-     reduce: function(obj,prev) { prev.count += 1; },
-     initial: { count: 0 }
-    })
-
-for ( i = 0 ; i < g.length ; i++ ) {
-    d = g[i].timestampDaily
-    print( d.getFullYear() + "/" + (d.getMonth()+1) + "/" + d.getDate() + "\t" + g[i].count )
-}
-
-
-
 
 
 # heavy query
-var cursor = db.sumibiorg.find()
-cursor.forEach(function(x) {
-    lst = x.request.split(/ /)
-    db.sumibiorg.update( { _id: x._id }, { "$set" : 
-					   { "req" : 
-					     { "method" : lst[0],
-					       "url"    : lst[1] }}} )
-})
-db.sumibiorg.ensureIndex( { url : 1 } )
+#var cursor = db.sumibiorg.find()
+#cursor.forEach(function(x) {
+#    lst = x.request.split(/ /)
+#    db.sumibiorg.update( { _id: x._id }, { "$set" : 
+#					   { "req" : 
+#					     { "method" : lst[0],
+#					       "url"    : lst[1] }}} )
+#})
+#db.sumibiorg.ensureIndex( { url : 1 } )
 
 var cursor = db.sumibiorg.find()
 cursor.forEach(function(x) {
@@ -121,14 +92,60 @@ cursor.forEach(function(x) {
 db.sumibiorg.ensureIndex( { url : 1 } )
 
 
-db.sumibiorg.distinct( "req.url" );
+db.sumibiorg.update( { }, { $set : { cgi : false }},
+		     false, true )
+db.sumibiorg.update( { url : /.cgi$/ }, { $set : { cgi : true }},
+		     false, true )
+
+db.sumibiorg.ensureIndex( { cgi : 1 } )
+
+db.sumibiorg.find( { cgi: true  } ).count()
+db.sumibiorg.find( { cgi: false } ).count()
+
+
+# group by timestampDaily  where cgi is true
+g_true = db.sumibiorg.group(
+    {key: { timestampDaily:true },
+     cond: { cgi: true },
+     reduce: function(obj,prev) { prev.count += 1; },
+     initial: { count: 0 }
+    })
+
+for ( i = 0 ; i < g_true.length ; i++ ) {
+    db.sumibiorg_daily.update( { timestampDaily: g_true[i].timestampDaily }, { $set : { count_true: g_true[i].count }}, true )
+}
+
+# group by timestampDaily  where cgi is false
+g_false = db.sumibiorg.group(
+    {key: { timestampDaily:true },
+     cond: { cgi: false },
+     reduce: function(obj,prev) { prev.count += 1; },
+     initial: { count: 0 }
+    })
+
+for ( i = 0 ; i < g_false.length ; i++ ) {
+    db.sumibiorg_daily.update( { timestampDaily: g_false[i].timestampDaily }, { $set : { count_false: g_false[i].count }}, true )
+}
+
+db.sumibiorg_daily.find().forEach( function( x ) {
+    d = x.timestampDaily
+    dateStr = d.getFullYear() + "/" + (d.getMonth()+1) + "/" + d.getDate()
+    print( dateStr +
+	   "\t" +
+	   (x.count_true  ? x.count_true  : 0) +
+	   "\t" +
+	   (x.count_false ? x.count_false : 0)
+	   )
+})
+
+
 
 g = db.sumibiorg.group(
-    {key: { req : { url:true }},
+    {key: { url:true },
      cond: {},
      reduce: function(obj,prev) { prev.count += 1; },
      initial: { count: 0 }
-    });
+    })
 
 
 for ( i = 0 ; i < g.length ; i++ ) {
