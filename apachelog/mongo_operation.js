@@ -124,10 +124,10 @@ g_false = db.sumibiorg.group(
     })
 
 for ( i = 0 ; i < g_false.length ; i++ ) {
-    db.sumibiorg_daily.update( { timestampDaily: g_false[i].timestampDaily }, { $set : { count_false: g_false[i].count }}, true )
+    db.sumibiorg.daily.update( { timestampDaily: g_false[i].timestampDaily }, { $set : { count_false: g_false[i].count }}, true )
 }
 
-db.sumibiorg_daily.find().forEach( function( x ) {
+db.sumibiorg.daily.find().forEach( function( x ) {
     d = x.timestampDaily
     dateStr = d.getFullYear() + "/" + (d.getMonth()+1) + "/" + d.getDate()
     print( dateStr +
@@ -137,8 +137,6 @@ db.sumibiorg_daily.find().forEach( function( x ) {
 	   (x.count_false ? x.count_false : 0)
 	   )
 })
-
-
 
 g = db.sumibiorg.group(
     {key: { url:true },
@@ -158,3 +156,10 @@ db.sumibiorg.top.find().sort( { count: -1 } ).limit( 50 ).forEach( function( x )
 } )
 
 
+db.sumibiorg.ensureIndex( { hostname : 1 } )
+g = db.sumibiorg.group(
+    {key: { hostname:true },
+     cond: {},
+     reduce: function(obj,prev) { prev.count += 1; },
+     initial: { count: 0 }
+    })
