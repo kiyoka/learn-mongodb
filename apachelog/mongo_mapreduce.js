@@ -11,7 +11,7 @@ switched to db sumibi
 > show collections
 sumibiorg
 system.indexes
-> db.sumibiorg.count();
+> db.sumibiorg.count()
 6072350
 
 # Heavy update query
