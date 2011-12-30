@@ -16,11 +16,11 @@ import1:
 
 # oldtype
 convert2:
-	bash convert_accesslog.sh oldtype
+	nendo gen_json_makefile.nnd ./log/oldtype/access.log*.gz > Makefile.2.tmp
+	make -f Makefile.2.tmp
 
 import2:
 	bash import_accesslog.sh oldtype
-
 
 
 

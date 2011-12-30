@@ -3,7 +3,7 @@
              This file is a memo file of mongo shell operations.
 
 
-$ mongo --host black sumibi
+$ mongo --host localhost sumibi
 MongoDB shell version: 2.0.1
 connecting to: black:27017/test
 > use sumibi
