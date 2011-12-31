@@ -47,7 +47,7 @@ db.runCommand(
 	mapReduce: "sumibiorg",
 	map: map,
 	reduce: reduce,
-	out: "out"
+	out: "daily"
     })
 
 // result
@@ -64,8 +64,76 @@ db.runCommand(
 { "_id" : "2011/11/14 1", "value" : { "count" : 9355 } }
  .
  .
-
     
-      
+
+map = function( ) {
+    emit( this.url, { count:1 } )
+}
+
+db.runCommand(
+    {
+	mapReduce: "sumibiorg",
+	map: map,
+	reduce: reduce,
+	out: "topurl"
+    })
 
 
+// convert time
+map = function( ) {
+    var d1 = this.timestamp
+    var ymdStr = d1.getFullYear() + "/" + d1.getMonth() + "/" +  d1.getDate()
+    if ( this.url.match( /.cgi$/ )) {
+	key = ymdStr + " " + this.hostname
+	emit( key, { count:1 } )
+    }
+}
+
+db.runCommand(
+    {
+	mapReduce: "sumibiorg",
+	map: map,
+	reduce: reduce,
+	out: "convert_time"
+    })
+
+
+
+// uniq user
+map = function( ) {
+    var d1 = this.timestamp
+    var ymdStr = d1.getFullYear() + "/" + d1.getMonth() + "/" +  d1.getDate()
+    if ( this.url.match( /.cgi$/ )) {
+	value = {}
+	value[ this.hostname ] = 1
+	emit( ymdStr, value )
+    }
+}
+
+reduce = function( key, values ) {
+    result = {}
+    values.forEach( function ( value ) {
+	for ( var k in value ) {
+	    result[ k ] = 1
+	}
+    })
+    return result
+}
+
+db.runCommand(
+    {
+	mapReduce: "sumibiorg",
+	map: map,
+	reduce: reduce,
+	out: "uniquser"
+    })
+
+// uniq user by CSV
+var cursor = db.uniquser.find()
+cursor.forEach(function(x) {
+    users = 0
+    for ( k in x.value ) {
+	users++
+    }
+    print( x._id + "\t" + users )
+})
