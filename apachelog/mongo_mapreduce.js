@@ -27,21 +27,26 @@ map = function( ) {
     var d1 = this.timestamp
     var ymdStr = d1.getFullYear() + "/" + d1.getMonth() + "/" +  d1.getDate()
     var cgiFlag = false
-    var url = this.url
-    if ( url ) {
-	if ( url.match( /.cgi$/ )) {
+    if ( this.url ) {
+	if ( this.url.match( /.cgi$/ )) {
 	    cgiFlag = true
 	}
     }
-    key = ymdStr + " " + cgiFlag
-    emit( key, { count:1, cgi: cgiFlag } )
+    key = ymdStr
+    if ( cgiFlag ) {
+	emit( key, { count:1, cgi: 1, other: 0 } )
+    }
+    else {
+	emit( key, { count:1, cgi: 0, other: 1 } )
+    }
 }
 
 reduce = function( key, values ) {
-    result = { count: 0, cgi: false }
+    result = { count: 0, cgi: 0, other: 0}
     values.forEach( function( value ) {
 	result.count   += value.count
-	result.cgi      = value.cgi
+	result.cgi     += value.cgi
+	result.other   += value.other
     })
     return result
 }
@@ -51,20 +56,16 @@ db.runCommand(
 	mapReduce: "master",
 	map: map,
 	reduce: reduce,
+	//query: { timestamp : { $gt : new Date( '2011/11/01' ) }},
 	out: "daily"
     })
 
-// daily by CSV
-var cursor = db.daily.find( { "value.cgi" :  true  } ) // for cgi
-cursor.forEach(function(x) {
-    lst = x._id.split( / / )
-    print( lst[0] + "\t" + x.value.count )
-})
 
-var cursor = db.daily.find( { "value.cgi" :  false } ) // for others
-cursor.forEach(function(x) {
-    lst = x._id.split( / / )
-    print( lst[0] + "\t" + x.value.count )
+// daily by CSV
+db.daily.find( ).forEach(function(x) {
+    d = new Date( x._id )
+    dateStr = d.getDate() + "/" + (d.getMonth()+1) + "/" + d.getFullYear()
+    print( dateStr + "\t" + x.value.cgi + "\t" + x.value.other )
 })
 
 
@@ -121,13 +122,13 @@ db.runCommand(
 
 // uniq user
 map = function( ) {
-    var d1 = this.timestamp
-    var ymdStr = d1.getFullYear() + "/" + d1.getMonth() + "/" +  d1.getDate()
+    var d = this.timestamp
+    var dmyStr = d.getDate() + "/" + (d.getMonth()+1) + "/" + d.getFullYear()
     if ( this.url ) {
 	if ( this.url.match( /.cgi$/ )) {
 	    value = {}
 	    value[ this.hostname ] = 1
-	    emit( ymdStr, value )
+	    emit( dmyStr, value )
 	}
     }
 }
@@ -147,12 +148,12 @@ db.runCommand(
 	mapReduce: "master",
 	map: map,
 	reduce: reduce,
+	//query: { timestamp : { $gt : new Date( '2011/11/01' ) }},
 	out: "uniquser"
     })
 
 // uniq user by CSV
-var cursor = db.uniquser.find()
-cursor.forEach(function(x) {
+db.uniquser.find().forEach(function(x) {
     users = 0
     for ( k in x.value ) {
 	users++
