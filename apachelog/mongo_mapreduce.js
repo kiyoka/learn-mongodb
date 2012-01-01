@@ -24,15 +24,15 @@ cursor.forEach(function(x) {
 
 
 map = function( ) {
-    var d1 = this.timestamp
-    var ymdStr = d1.getFullYear() + "/" + d1.getMonth() + "/" +  d1.getDate()
+    var d = this.timestamp
+    var dmyStr = d.getDate() + "/" + (d.getMonth()+1) + "/" + d.getFullYear()
     var cgiFlag = false
     if ( this.url ) {
 	if ( this.url.match( /.cgi$/ )) {
 	    cgiFlag = true
 	}
     }
-    key = ymdStr
+    key = dmyStr
     if ( cgiFlag ) {
 	emit( key, { count:1, cgi: 1, other: 0 } )
     }
@@ -92,11 +92,11 @@ db.runCommand(
 
 // convert time
 map = function( ) {
-    var d1 = this.timestamp
-    var ymdStr = d1.getFullYear() + "/" + d1.getMonth() + "/" +  d1.getDate()
+    var d = this.timestamp
+    var dmyStr = d.getDate() + "/" + (d.getMonth()+1) + "/" + d.getFullYear()
     if ( this.url ) {
 	if ( this.url.match( /.cgi$/ )) {
-	    key = ymdStr + " " + this.hostname
+	    key = dmyStr + " " + this.hostname
 	    emit( key, { count:1 } )
 	}
     }
