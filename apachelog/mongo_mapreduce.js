@@ -9,17 +9,17 @@ connecting to: localhost:27017/sumibi
 > use sumibi
 switched to db sumibi
 > show collections
-sumibiorg
+master
 system.indexes
-> db.sumibiorg.count()
+> db.master.count()
 6072350
 
 // Heavy update query
-var cursor = db.sumibiorg.find()
+var cursor = db.master.find()
 cursor.forEach(function(x) {
     lst = x.request.split(/ /)
-    db.sumibiorg.update( { _id: x._id }, { "$set" : { "method" : lst[0] }} )
-    db.sumibiorg.update( { _id: x._id }, { "$set" : { "url" :    lst[1] }} )
+    db.master.update( { _id: x._id }, { "$set" : { "method" : lst[0] }} )
+    db.master.update( { _id: x._id }, { "$set" : { "url" :    lst[1] }} )
 })
 
 
@@ -27,8 +27,11 @@ map = function( ) {
     var d1 = this.timestamp
     var ymdStr = d1.getFullYear() + "/" + d1.getMonth() + "/" +  d1.getDate()
     var cgiFlag = false
-    if ( this.url.match( /.cgi$/ )) {
-	cgiFlag = true
+    var url = this.url
+    if ( url ) {
+	if ( url.match( /.cgi$/ )) {
+	    cgiFlag = true
+	}
     }
     key = ymdStr + " " + cgiFlag
     emit( key, { count:1, cgi: cgiFlag } )
@@ -45,7 +48,7 @@ reduce = function( key, values ) {
 
 db.runCommand(
     {
-	mapReduce: "sumibiorg",
+	mapReduce: "master",
 	map: map,
 	reduce: reduce,
 	out: "daily"
@@ -53,8 +56,12 @@ db.runCommand(
 
 // daily by CSV
 var cursor = db.daily.find( { "value.cgi" :  true  } ) // for cgi
-var cursor = db.daily.find( { "value.cgi" :  false } ) // for others
+cursor.forEach(function(x) {
+    lst = x._id.split( / / )
+    print( lst[0] + "\t" + x.value.count )
+})
 
+var cursor = db.daily.find( { "value.cgi" :  false } ) // for others
 cursor.forEach(function(x) {
     lst = x._id.split( / / )
     print( lst[0] + "\t" + x.value.count )
@@ -75,7 +82,7 @@ reduce = function( key, values ) {
 
 db.runCommand(
     {
-	mapReduce: "sumibiorg",
+	mapReduce: "master",
 	map: map,
 	reduce: reduce,
 	out: "top"
@@ -86,15 +93,25 @@ db.runCommand(
 map = function( ) {
     var d1 = this.timestamp
     var ymdStr = d1.getFullYear() + "/" + d1.getMonth() + "/" +  d1.getDate()
-    if ( this.url.match( /.cgi$/ )) {
-	key = ymdStr + " " + this.hostname
-	emit( key, { count:1 } )
+    if ( this.url ) {
+	if ( this.url.match( /.cgi$/ )) {
+	    key = ymdStr + " " + this.hostname
+	    emit( key, { count:1 } )
+	}
     }
+}
+
+reduce = function( key, values ) {
+    result = { count: 0 }
+    values.forEach( function( value ) {
+	result.count   += value.count
+    })
+    return result
 }
 
 db.runCommand(
     {
-	mapReduce: "sumibiorg",
+	mapReduce: "master",
 	map: map,
 	reduce: reduce,
 	out: "convert_time"
@@ -106,10 +123,12 @@ db.runCommand(
 map = function( ) {
     var d1 = this.timestamp
     var ymdStr = d1.getFullYear() + "/" + d1.getMonth() + "/" +  d1.getDate()
-    if ( this.url.match( /.cgi$/ )) {
-	value = {}
-	value[ this.hostname ] = 1
-	emit( ymdStr, value )
+    if ( this.url ) {
+	if ( this.url.match( /.cgi$/ )) {
+	    value = {}
+	    value[ this.hostname ] = 1
+	    emit( ymdStr, value )
+	}
     }
 }
 
@@ -125,7 +144,7 @@ reduce = function( key, values ) {
 
 db.runCommand(
     {
-	mapReduce: "sumibiorg",
+	mapReduce: "master",
 	map: map,
 	reduce: reduce,
 	out: "uniquser"
