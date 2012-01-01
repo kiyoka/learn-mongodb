@@ -14,7 +14,7 @@ system.indexes
 > db.sumibiorg.count()
 6072350
 
-# Heavy update query
+// Heavy update query
 var cursor = db.sumibiorg.find()
 cursor.forEach(function(x) {
     lst = x.request.split(/ /)
@@ -26,18 +26,19 @@ cursor.forEach(function(x) {
 map = function( ) {
     var d1 = this.timestamp
     var ymdStr = d1.getFullYear() + "/" + d1.getMonth() + "/" +  d1.getDate()
-    var cgiFlag = "0"
+    var cgiFlag = false
     if ( this.url.match( /.cgi$/ )) {
-	cgiFlag = "1"
+	cgiFlag = true
     }
     key = ymdStr + " " + cgiFlag
-    emit( key, { count:1 } )
+    emit( key, { count:1, cgi: cgiFlag } )
 }
 
 reduce = function( key, values ) {
-    result = { count: 0 }
+    result = { count: 0, cgi: false }
     values.forEach( function( value ) {
-	result.count += value.count
+	result.count   += value.count
+	result.cgi      = value.cgi
     })
     return result
 }
@@ -50,24 +51,26 @@ db.runCommand(
 	out: "daily"
     })
 
-// result
-> db.out.find().limit(10)
-{ "_id" : "2011/11/10 0", "value" : { "count" : 223 } }
-{ "_id" : "2011/11/10 1", "value" : { "count" : 358 } }
-{ "_id" : "2011/11/11 0", "value" : { "count" : 2794 } }
-{ "_id" : "2011/11/11 1", "value" : { "count" : 4186 } }
-{ "_id" : "2011/11/12 0", "value" : { "count" : 2459 } }
-{ "_id" : "2011/11/12 1", "value" : { "count" : 7437 } }
-{ "_id" : "2011/11/13 0", "value" : { "count" : 3092 } }
-{ "_id" : "2011/11/13 1", "value" : { "count" : 9887 } }
-{ "_id" : "2011/11/14 0", "value" : { "count" : 3577 } }
-{ "_id" : "2011/11/14 1", "value" : { "count" : 9355 } }
- .
- .
-    
+// daily by CSV
+var cursor = db.daily.find( { "value.cgi" :  true  } ) // for cgi
+var cursor = db.daily.find( { "value.cgi" :  false } ) // for others
+
+cursor.forEach(function(x) {
+    lst = x._id.split( / / )
+    print( lst[0] + "\t" + x.value.count )
+})
+
 
 map = function( ) {
     emit( this.url, { count:1 } )
+}
+
+reduce = function( key, values ) {
+    result = { count: 0 }
+    values.forEach( function( value ) {
+	result.count   += value.count
+    })
+    return result
 }
 
 db.runCommand(
@@ -75,7 +78,7 @@ db.runCommand(
 	mapReduce: "sumibiorg",
 	map: map,
 	reduce: reduce,
-	out: "topurl"
+	out: "top"
     })
 
 
