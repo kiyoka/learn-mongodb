@@ -60,7 +60,8 @@
       h2)))
 
 ;;(ap2-parse-combined "87.18.183.252 - - [13/Aug/2008:00:50:49 -0700] \"GET /blog/index.xml HTTP/1.1\" 302 527 \"-\" \"Feedreader 3.13 (Powered by Newsbrain)\"")
-                    
+;;(ap2-parse-combined "220.147.114.250 - - [18/Jul/2004:10:22:09 +0900] \"\x18\xbe~\x1d\" 401 - \"-\" \"-\"")
+
 
 (define (to-mongo-data h)
   ;;    irb
@@ -90,8 +91,10 @@
      (to-i (hash-table-get h 'tfrsize)))
 
     (let1 arr (. (hash-table-get h 'request) split #/ /)
-      (let1 url (vector-ref arr 1)
-        (hash-table-put! h 'url url))))
+      (if (< 1 arr.size)
+          (let1 url (vector-ref arr 1)
+            (hash-table-put! h 'url url))
+          (hash-table-get h 'request))))
   h)
 
 ;;(to-mongo-data
@@ -99,7 +102,10 @@
 ;;  '(
 ;;    (timestamp . "[09/Oct/2011:06:45:00 +0900]")
 ;;    (a . b)
-;;    (tfrsize . "128"))))
+;;    (tfrsize . "128")
+;;    (request . "GET /blog/index.xml HTTP/1.1")
+;;    (request . "18be~1d")
+;;    )))
 
 
 (define (main argv)
