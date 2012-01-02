@@ -3,11 +3,9 @@
             // This file is a memo of mongo's MapReduce 
 
 
-$ mongo --host localhost sumibi
+$ mongo --host localhost oldtype
 MongoDB shell version: 2.0.2
 connecting to: localhost:27017/sumibi
-> use sumibi
-switched to db sumibi
 > show collections
 master
 system.indexes
@@ -26,26 +24,26 @@ cursor.forEach(function(x) {
 map = function( ) {
     var d = this.timestamp
     var dmyStr = d.getDate() + "/" + (d.getMonth()+1) + "/" + d.getFullYear()
-    var cgiFlag = false
+    var rssFlag = false
     if ( this.url ) {
-	if ( this.url.match( /.cgi$/ )) {
-	    cgiFlag = true
+	if ( this.url.match( /get-rss/ )) {
+	    rssFlag = true
 	}
     }
     key = dmyStr
-    if ( cgiFlag ) {
-	emit( key, { count:1, cgi: 1, other: 0 } )
+    if ( rssFlag ) {
+	emit( key, { count:1, rss: 1, other: 0 } )
     }
     else {
-	emit( key, { count:1, cgi: 0, other: 1 } )
+	emit( key, { count:1, rss: 0, other: 1 } )
     }
 }
 
 reduce = function( key, values ) {
-    result = { count: 0, cgi: 0, other: 0}
+    result = { count: 0, rss: 0, other: 0}
     values.forEach( function( value ) {
 	result.count   += value.count
-	result.cgi     += value.cgi
+	result.rss     += value.rss
 	result.other   += value.other
     })
     return result
@@ -63,9 +61,7 @@ db.runCommand(
 
 // daily by CSV
 db.daily.find( ).forEach(function(x) {
-    d = new Date( x._id )
-    dateStr = d.getDate() + "/" + (d.getMonth()+1) + "/" + d.getFullYear()
-    print( dateStr + "\t" + x.value.cgi + "\t" + x.value.other )
+    print( x._id + "\t" + x.value.rss + "\t" + x.value.other )
 })
 
 
@@ -89,48 +85,21 @@ db.runCommand(
 	out: "top"
     })
 
-
-// convert time
-map = function( ) {
-    var d = this.timestamp
-    var dmyStr = d.getDate() + "/" + (d.getMonth()+1) + "/" + d.getFullYear()
-    if ( this.url ) {
-	if ( this.url.match( /.cgi$/ )) {
-	    key = dmyStr + " " + this.hostname
-	    emit( key, { count:1 } )
-	}
+db.top.ensureIndex( { "value.count" : -1 } )
+db.top.find().sort( { "value.count" : -1 } ).forEach(function(x) {
+    if ( x._id.match( /show-page/ )) {
+	print( x._id + "\t" + x.value.count )
     }
-}
-
-reduce = function( key, values ) {
-    result = { count: 0 }
-    values.forEach( function( value ) {
-	result.count   += value.count
-    })
-    return result
-}
-
-db.runCommand(
-    {
-	mapReduce: "master",
-	map: map,
-	reduce: reduce,
-	out: "convert_time"
-    })
-
+})
 
 
 // uniq user
 map = function( ) {
     var d = this.timestamp
     var dmyStr = d.getDate() + "/" + (d.getMonth()+1) + "/" + d.getFullYear()
-    if ( this.url ) {
-	if ( this.url.match( /.cgi$/ )) {
-	    value = {}
-	    value[ this.hostname ] = 1
-	    emit( dmyStr, value )
-	}
-    }
+    value = {}
+    value[ this.hostname ] = 1
+    emit( dmyStr, value )
 }
 
 reduce = function( key, values ) {
