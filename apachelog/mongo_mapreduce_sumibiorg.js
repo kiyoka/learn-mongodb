@@ -6,8 +6,6 @@
 $ mongo --host localhost sumibi
 MongoDB shell version: 2.0.2
 connecting to: localhost:27017/sumibi
-> use sumibi
-switched to db sumibi
 > show collections
 master
 system.indexes
